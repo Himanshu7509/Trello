@@ -1,18 +1,31 @@
 import React, { useState } from "react";
-import { FaEnvelope, FaLock, FaTrello, FaAtlassian } from "react-icons/fa";
+import {
+  FaEnvelope,
+  FaLock,
+  FaTrello,
+  FaAtlassian,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
 import { HiOutlineShieldCheck } from "react-icons/hi";
 import { signInApi } from "../../utils/Api";
 import { Link, useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
 const SignIn = () => {
   const [signIn, setSignIn] = useState({
     email: "",
     password: "",
   });
-  const navigate = useNavigate()
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setSignIn({ ...signIn, [e.target.name]: e.target.value });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -20,7 +33,17 @@ const SignIn = () => {
     try {
       const response = await signInApi(signIn);
       console.log(response);
-      navigate("/home")
+      if (response.data && response.data.token) {
+        Cookies.set("auth_token", response.data.token, { expires: 1 });
+      }
+
+      if (response.data && response.data.user && response.data.user.id) {
+        Cookies.set("user_id", response.data.user.id, { expires: 1 });
+        Cookies.set("user_name", response.data.user.userName, { expires: 1 });
+        Cookies.set("user_email", response.data.user.email, { expires: 1 });
+      }
+
+      navigate("/home");
     } catch (error) {
       console.error("SignIn failed:", error);
     }
@@ -42,7 +65,6 @@ const SignIn = () => {
           Welcome back!
         </h1>
 
-        
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -64,14 +86,25 @@ const SignIn = () => {
               <FaLock className="text-gray-400" />
             </div>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               placeholder="Enter your password"
               value={signIn.password}
               onChange={handleChange}
-              className="w-full pl-10 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full pl-10 pr-10 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               required
             />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              onClick={togglePasswordVisibility}
+            >
+              {showPassword ? (
+                <FaEyeSlash className="text-gray-400 hover:text-gray-600" />
+              ) : (
+                <FaEye className="text-gray-400 hover:text-gray-600" />
+              )}
+            </button>
           </div>
 
           <div className="flex items-start">
@@ -87,9 +120,13 @@ const SignIn = () => {
                 Remember me
               </label>
             </div>
-            <a href="#" className="ml-auto text-sm text-blue-600 hover:underline">
+
+            <Link
+              to="/forget-password"
+              className="ml-auto text-sm text-blue-600 hover:underline"
+            >
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           <div className="text-xs text-gray-600 flex items-start space-x-2">
@@ -115,7 +152,6 @@ const SignIn = () => {
           </button>
         </form>
 
-  
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Don't have an Atlassian account?{" "}
@@ -125,7 +161,6 @@ const SignIn = () => {
           </p>
         </div>
 
-     
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200"></div>
@@ -135,7 +170,6 @@ const SignIn = () => {
           </div>
         </div>
 
-        
         <div className="grid grid-cols-2 gap-4 mb-6">
           <button className="flex items-center justify-center py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -166,7 +200,6 @@ const SignIn = () => {
           </button>
         </div>
 
-        {/* Atlassian footer */}
         <div className="mt-8 text-center border-t border-gray-100 pt-6">
           <div className="flex justify-center mb-2">
             <FaAtlassian className="text-blue-500 text-2xl" />
