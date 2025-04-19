@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
-import { FaLock, FaUser, FaTimes } from 'react-icons/fa';
-import HomeSidebar from './HomeSidebar';
-import { createBoardApi } from '../../utils/Api';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { FaLock, FaUser, FaTimes } from "react-icons/fa";
+import HomeSidebar from "./HomeSidebar";
+import { createBoardApi, getCredatedBoardApi } from "../../utils/Api";
+import { Link, useNavigate } from "react-router-dom";
 
 const HomePage = () => {
   const [data, setData] = useState({
     title: "",
     description: "",
-    visibility: "workspace" // or private
+    visibility: "workspace",
   });
+  const [boards, setBoards] = useState([]);
   const navigate = useNavigate();
   const [modal, setModal] = useState(false);
+  const bgColors = [
+    "bg-gradient-to-br from-blue-900 to-gray-800",
+    "bg-gradient-to-br from-purple-900 to-gray-800",
+    "bg-gradient-to-br from-indigo-900 to-gray-800",
+    "bg-gradient-to-br from-teal-900 to-gray-800",
+    "bg-gradient-to-br from-green-900 to-gray-800",
+    "bg-gradient-to-br from-red-900 to-gray-800",
+  ];
+
+  useEffect(() => {
+    const handleBoards = async () => {
+      try {
+        const response = await getCredatedBoardApi();
+        console.log(response);
+        if (response.status === 200 || response.status === 201) {
+          setBoards(response.data);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    handleBoards();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,12 +49,12 @@ const HomePage = () => {
     e.preventDefault();
     try {
       const response = await createBoardApi(data);
-      console.log(response);
+      console.log("post", response.data._id);
+      const id = response.data._id;
       setModal(false);
-      if(response.status === 200 || response.status === 201){
-        navigate('/board');
+      if (response.status === 200 || response.status === 201) {
+        navigate(`/board/${id}`);
       }
-     
     } catch (error) {
       console.error("Error creating board:", error);
     }
@@ -38,40 +62,54 @@ const HomePage = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
-      {/* Sidebar */}
       <HomeSidebar />
 
-      {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
-        {/* Workspace Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-2xl font-bold">himanshuthakre7509's workspace</h1>
+            <h1 className="text-2xl font-bold">
+              himanshuthakre7509's workspace
+            </h1>
             <FaLock className="text-gray-400" />
             <span className="text-sm text-gray-400">Private</span>
           </div>
           <hr className="border-gray-700 mt-4" />
         </div>
 
-        {/* Your Boards Section */}
         <section className="mt-6">
           <div className="flex items-center gap-2 mb-4">
             <FaUser className="text-xl" />
             <h2 className="text-xl font-semibold">Your boards</h2>
           </div>
 
-          {/* Boards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {/* Create New Board */}
-            <div 
+            <div
               className="bg-gray-800 border border-gray-600 rounded-md p-4 flex items-center justify-center cursor-pointer hover:bg-gray-700 h-32"
               onClick={() => setModal(true)}
             >
-              <h3 className="text-gray-300 text-lg">Create new board</h3>
+              <h3 className="text-gray-300 text-xl font-semibold">
+                Create new board
+              </h3>
             </div>
+
+            {boards &&
+              boards.length > 0 &&
+              boards.map((item, index) => (
+                <div
+                  key={index}
+                  className={`${
+                    bgColors[index % bgColors.length]
+                  } border border-gray-600 rounded-md p-4 cursor-pointer hover:opacity-90 transition-all duration-300 h-32 shadow-lg flex flex-col justify-between overflow-hidden`}
+                >
+                  <Link to={`/board/${item._id}`}>
+                    <h3 className="text-white text-2xl font-medium truncate">
+                      {item.title}
+                    </h3>
+                  </Link>
+                </div>
+              ))}
           </div>
 
-          {/* View Closed Boards Button */}
           <div className="mt-6">
             <button className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">
               View closed boards
@@ -80,20 +118,19 @@ const HomePage = () => {
         </section>
       </main>
 
-      {/* Create Board Modal */}
       {modal && (
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Create new board</h2>
-              <button 
+              <button
                 onClick={() => setModal(false)}
                 className="text-gray-400 hover:text-white"
               >
                 <FaTimes />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="block text-gray-300 mb-2">Board Title</label>
@@ -107,7 +144,7 @@ const HomePage = () => {
                   required
                 />
               </div>
-              
+
               <div className="mb-4">
                 <label className="block text-gray-300 mb-2">Description</label>
                 <textarea
@@ -119,7 +156,7 @@ const HomePage = () => {
                   rows="3"
                 />
               </div>
-              
+
               <div className="mb-6">
                 <label className="block text-gray-300 mb-2">Visibility</label>
                 <select
@@ -132,7 +169,7 @@ const HomePage = () => {
                   <option value="private">Private</option>
                 </select>
               </div>
-              
+
               <button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"

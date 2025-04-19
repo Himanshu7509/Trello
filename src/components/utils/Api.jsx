@@ -55,3 +55,15 @@ export const createBoardApi = (post) => {
 export const getCredatedBoardApi = () => {
   return Api.get("/board/my-boards");
 };
+
+export const postBoardColumn = (post) =>{
+  return Api.post('/column',post)
+}
+
+export const getBoardColumns = (id) =>{
+  return Api.get(`/column/get-all/${id}`)
+}
+
+export const updateBoardColumns = (post) =>{
+  return Api.patch("/column/columns/move",post)
+}
