@@ -23,3 +23,13 @@ export const resendOtpApi = (post) =>{
 
     return Api.post('/api/v1/auth/resend-otp',post)
 }
+
+export const forgetPassword = (post) =>{
+
+    return Api.post ('/api/v1/auth/forgot-password',post)
+}
+
+export const resetPassword = (post) =>{
+
+    return Api.post ('/api/v1/auth/reset-password',post)
+}

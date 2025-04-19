@@ -3,6 +3,8 @@ import {Routes,Route} from 'react-router-dom'
 import Signup from '../src/components/authentication/signUp/SignUp'
 import VerifyOTP from './components/authentication/verifyOTP/VerifyOTP'
 import SignIn from './components/authentication/signIn/SignIn'
+import ForgotPassword from './components/authentication/forgotPassword/ForgotPassword'
+import ResetPassword from './components/authentication/resetPassword/ResetPassword'
 
 function App() {
  
@@ -13,7 +15,8 @@ function App() {
 <Route path='/' element= {<Signup/>}/>
 <Route path='/verify-otp' element= {<VerifyOTP/>}/>
 <Route path='/login' element= {<SignIn/>}/>
-
+<Route path='/forget-password' element= {<ForgotPassword/>}/>
+<Route path='/reset-password' element= {<ResetPassword/>}/>
 
 
     </Routes>

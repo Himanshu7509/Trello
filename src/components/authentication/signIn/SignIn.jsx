@@ -87,9 +87,12 @@ const SignIn = () => {
                 Remember me
               </label>
             </div>
-            <a href="#" className="ml-auto text-sm text-blue-600 hover:underline">
+
+            <Link to='/forget-password' className="ml-auto text-sm text-blue-600 hover:underline">
+            
               Forgot password?
-            </a>
+         
+            </Link>
           </div>
 
           <div className="text-xs text-gray-600 flex items-start space-x-2">
