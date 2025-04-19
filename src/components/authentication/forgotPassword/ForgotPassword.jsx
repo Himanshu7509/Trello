@@ -37,7 +37,7 @@ const ForgotPassword = () => {
         // After successful submission, you might want to redirect to a confirmation page
         // or keep the user on this page with the success message
         setTimeout(() =>// In your forgot password page
-        navigate('/reset-password', { state: { email: userEmail } }), 3000);
+        navigate('/reset-password', { state: email  }), 3000);
       }
     } catch (error) {
       console.error("Forgot password error:", error);

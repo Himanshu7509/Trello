@@ -33,3 +33,8 @@ export const resetPassword = (post) =>{
 
     return Api.post ('/api/v1/auth/reset-password',post)
 }
+
+export const resendOtpForPasswordResetApi = (post) =>{
+
+    return Api.post('/api/v1/auth/resend-otp-reset',post)
+}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaTrello, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { HiKey } from "react-icons/hi";
-import { resetPassword } from "../../utils/Api";
+import { resetPassword, resendOtpForPasswordResetApi } from "../../utils/Api";
 
 const ResetPassword = () => {
   const location = useLocation();
@@ -12,13 +12,13 @@ const ResetPassword = () => {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [resendingOtp, setResendingOtp] = useState(false);
 
   const [formData, setFormData] = useState({
-    email: location.state?.email || "",
+    email: location.state || "",
     otp: "",
     newPassword: "",
-    confirmPassword: ""
   });
 
   useEffect(() => {
@@ -28,11 +28,22 @@ const ResetPassword = () => {
     }
   }, [formData.email]);
 
+  // Countdown timer effect
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
+    console.log(formData);
+    
     e.preventDefault();
     
     // Basic validation
@@ -44,12 +55,6 @@ const ResetPassword = () => {
     
     if (!formData.newPassword) {
       setMessage("Please enter a new password");
-      setMessageType("error");
-      return;
-    }
-    
-    if (formData.newPassword !== formData.confirmPassword) {
-      setMessage("Passwords do not match");
       setMessageType("error");
       return;
     }
@@ -89,12 +94,37 @@ const ResetPassword = () => {
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+  const handleResendOtp = async () => {
+    if (countdown > 0) return;
+    
+    if (!formData.email) {
+      setMessage("Email not provided. Please start from the forgot password page.");
+      setMessageType("error");
+      return;
+    }
+    
+    setResendingOtp(true);
+    
+    try {
+      const response = await resendOtpForPasswordResetApi({ email: formData.email });
+      console.log("Resend OTP response:", response);
+      
+      if (response && response.data) {
+        setMessage("A new OTP has been sent to your email");
+        setMessageType("success");
+        setCountdown(60); // Start 60s countdown
+      }
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      setMessage(error.response?.data?.message || "Failed to resend OTP. Please try again.");
+      setMessageType("error");
+    } finally {
+      setResendingOtp(false);
+    }
   };
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -175,32 +205,6 @@ const ResetPassword = () => {
             </div>
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaLock className="text-gray-400" />
-            </div>
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              name="confirmPassword"
-              placeholder="Confirm new password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full py-3 pl-10 pr-10 bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              required
-              minLength="8"
-            />
-            <div 
-              className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-              onClick={toggleConfirmPasswordVisibility}
-            >
-              {showConfirmPassword ? (
-                <FaEyeSlash className="text-gray-400" />
-              ) : (
-                <FaEye className="text-gray-400" />
-              )}
-            </div>
-          </div>
-
           <button
             type="submit"
             disabled={isSubmitting}
@@ -216,9 +220,16 @@ const ResetPassword = () => {
 
         <div className="mt-8 space-y-4">
           <div className="text-center">
-            <a href="/forgot-password" className="text-blue-600 hover:underline text-sm font-medium">
-              Request a new OTP
-            </a>
+            <button 
+              onClick={handleResendOtp}
+              disabled={countdown > 0 || resendingOtp}
+              className={`text-blue-600 hover:underline text-sm font-medium ${
+                countdown > 0 || resendingOtp ? "text-gray-400 cursor-not-allowed" : ""
+              }`}
+            >
+              {resendingOtp ? "Sending..." : 
+                countdown > 0 ? `Request a new OTP (${countdown}s)` : "Request a new OTP"}
+            </button>
           </div>
         </div>
         

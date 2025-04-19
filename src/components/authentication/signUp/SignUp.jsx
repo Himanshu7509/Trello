@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { FaEnvelope, FaLock, FaTrello, FaAtlassian, FaUser } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaTrello, FaAtlassian, FaUser, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { HiOutlineShieldCheck } from 'react-icons/hi';
 import { signUpApi } from '../../utils/Api';
 import { Link, useNavigate } from 'react-router-dom';
 
 const SignUp = () => {
   const navigate = useNavigate();
+    const [showPassword, setShowPassword] = useState(false);
   const [signup, setSignup] = useState({
     userName: '',
     email: '',
@@ -14,6 +15,10 @@ const SignUp = () => {
 
   const handleChange = (e) => {
     setSignup({ ...signup, [e.target.name]: e.target.value });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -75,7 +80,7 @@ const SignUp = () => {
               <FaLock className="text-gray-400" />
             </div>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               placeholder="Enter your password"
               value={signup.password}
@@ -83,6 +88,17 @@ const SignUp = () => {
               className="w-full pl-10 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               required
             />
+            <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={togglePasswordVisibility}
+                        >
+                          {showPassword ? (
+                            <FaEyeSlash className="text-gray-400 hover:text-gray-600" />
+                          ) : (
+                            <FaEye className="text-gray-400 hover:text-gray-600" />
+                          )}
+                        </button>
           </div>
           
           <div className="text-xs text-gray-600 flex items-start space-x-2">
