@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaTrello, FaEnvelope } from "react-icons/fa";
 import { HiLockClosed } from "react-icons/hi";
 import { forgetPassword } from "../../utils/Api";
+import { Link } from "react-router-dom";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -110,9 +111,9 @@ const ForgotPassword = () => {
         <div className="mt-8 space-y-4">
           <div className="text-center">
             <p className="text-gray-600 text-sm">Remember your password?</p>
-            <a href="/login" className="text-blue-600 hover:underline text-sm font-medium">
+            <Link to="/login" className="text-blue-600 hover:underline text-sm font-medium">
               Back to Login
-            </a>
+            </Link>
           </div>
         </div>
         
