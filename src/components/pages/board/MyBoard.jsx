@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { postBoardColumn, getBoardColumns, updateBoardColumns } from '../../utils/Api'
+import ShareBoardModal from '../../common/modals/ShareBoardModal'
+import { X, Link as LinkIcon, Search } from 'lucide-react'
 
 const MyBoard = () => {
   const { id } = useParams()
@@ -9,6 +11,7 @@ const MyBoard = () => {
   const [loading, setLoading] = useState(true)
   const [addingList, setAddingList] = useState(false)
   const [newListTitle, setNewListTitle] = useState("")
+  const [modal, setModal] = useState(false)
 
   useEffect(() => {
     const fetchColumns = async () => {
@@ -25,6 +28,14 @@ const MyBoard = () => {
     }
     fetchColumns()
   }, [id])
+
+  const handleModal = () => {
+    setModal(true)
+  }
+
+  const closeModal = () => {
+    setModal(false)
+  }
 
   const handleDragEnd = async (result) => {
     if (!result.destination) return
@@ -91,7 +102,15 @@ const MyBoard = () => {
       className="p-6 h-screen bg-cover bg-center overflow-x-auto" 
       style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1470&q=80')" }}
     >
-      <h2 className="text-3xl font-bold mb-6 text-white drop-shadow-lg">My Trello Board</h2>
+      <div className="flex justify-between mb-6">
+        <h2 className="text-3xl font-bold text-white drop-shadow-lg">My Trello Board</h2>
+        <button 
+          onClick={handleModal}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-lg"
+        >
+          Share Board
+        </button>
+      </div>
 
       {loading ? (
         <p className="text-white">Loading columns...</p>
@@ -173,6 +192,10 @@ const MyBoard = () => {
             )}
           </Droppable>
         </DragDropContext>
+      )}
+      
+      {modal && (
+        <ShareBoardModal onClose={closeModal} boardId={id} />
       )}
     </div>
   )

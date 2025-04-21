@@ -67,3 +67,20 @@ export const getBoardColumns = (id) =>{
 export const updateBoardColumns = (post) =>{
   return Api.patch("/column/columns/move",post)
 }
+
+export const searchMember = (id) =>{
+
+return Api.get(`/user/search?query=${id}`)
+
+}
+
+export const addedBoardMembers = (boardId,memberId) =>{
+
+  return Api.patch(`/board/add-member/${boardId}`,memberId)
+}
+
+export const getAllBoardMembers = (boardId) =>{
+
+return Api.get(`/board/members/${boardId}`)
+
+}
