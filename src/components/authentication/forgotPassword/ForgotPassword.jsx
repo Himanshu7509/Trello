@@ -35,7 +35,7 @@ const ForgotPassword = () => {
       if (response && response.data) {
         setMessage("Password reset instructions sent to your email!");
         setMessageType("success");
-        setTimeout(() =>// In your forgot password page
+        setTimeout(() =>
         navigate('/reset-password', { state: email  }), 3000);
       }
     } catch (error) {

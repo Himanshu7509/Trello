@@ -28,7 +28,7 @@ const ResetPassword = () => {
     }
   }, [formData.email]);
 
-  // Countdown timer effect
+  
   useEffect(() => {
     let timer;
     if (countdown > 0) {
@@ -46,7 +46,7 @@ const ResetPassword = () => {
     
     e.preventDefault();
     
-    // Basic validation
+   
     if (!formData.otp) {
       setMessage("Please enter the OTP sent to your email");
       setMessageType("error");
@@ -68,14 +68,14 @@ const ResetPassword = () => {
     setIsSubmitting(true);
     
     try {
-      // Prepare the post data according to the API requirements
+    
       const postData = {
         email: formData.email,
         otp: formData.otp,
         newPassword: formData.newPassword
       };
       
-      // Use the resetPassword API function
+ 
       const response = await resetPassword(postData);
       
       console.log("Reset password response:", response);
@@ -112,7 +112,7 @@ const ResetPassword = () => {
       if (response && response.data) {
         setMessage("A new OTP has been sent to your email");
         setMessageType("success");
-        setCountdown(60); // Start 60s countdown
+        setCountdown(60); 
       }
     } catch (error) {
       console.error("Resend OTP error:", error);
