@@ -67,3 +67,7 @@ export const getBoardColumns = (id) =>{
 export const updateBoardColumns = (post) =>{
   return Api.patch("/column/columns/move",post)
 }
+
+export const getUserApi = () => {
+  return Api.get("/user/profile");
+};

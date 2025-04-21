@@ -39,8 +39,6 @@ const SignIn = () => {
 
       if (response.data && response.data.user && response.data.user.id) {
         Cookies.set("user_id", response.data.user.id, { expires: 1 });
-        Cookies.set("user_name", response.data.user.userName, { expires: 1 });
-        Cookies.set("user_email", response.data.user.email, { expires: 1 });
       }
 
       navigate("/home");
@@ -155,7 +153,7 @@ const SignIn = () => {
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Don't have an Atlassian account?{" "}
-            <Link to="/" className="text-blue-600 hover:underline font-medium">
+            <Link to="/signup" className="text-blue-600 hover:underline font-medium">
               Sign up
             </Link>
           </p>

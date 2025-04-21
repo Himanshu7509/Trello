@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaTrello, FaEnvelope } from "react-icons/fa";
 import { HiMail, HiOutlineMailOpen } from "react-icons/hi";
 import { resendOtpApi, verifyOtpApi } from "../../utils/Api";
@@ -149,9 +149,9 @@ const VerifyOTP = () => {
 
         <div className="mt-8 space-y-4">
           <div className="text-center">
-            <a href="/signup" className="text-blue-600 hover:underline text-sm font-medium">
+            <Link to="/signup" className="text-blue-600 hover:underline text-sm font-medium">
               Sign up with a different email
-            </a>
+            </Link>
           </div>
           
           <button

@@ -14,7 +14,6 @@ const MyBoard = () => {
     const fetchColumns = async () => {
       try {
         const response = await getBoardColumns(id)
-        // Make sure columns are sorted by position if your API doesn't already do this
         const sortedColumns = response.data.sort((a, b) => a.position - b.position)
         setColumns(sortedColumns)
       } catch (error) {
@@ -33,35 +32,28 @@ const MyBoard = () => {
 
     if (source.index === destination.index) return
 
-    // Create a copy of the columns array
     const items = Array.from(columns)
     const [reorderedItem] = items.splice(source.index, 1)
     items.splice(destination.index, 0, reorderedItem)
 
-    // Update the position property for all affected columns
     const updatedItems = items.map((item, index) => ({
       ...item,
       position: index
     }))
 
-    // Update state with the new positions
     setColumns(updatedItems)
 
     try {
-      // Update the position of the dragged column
       await updateBoardColumns({
         boardId: id,
         columnId: draggableId,
         newPosition: destination.index,
-        // You might need to include all column positions if your API supports batch updates
         allColumns: updatedItems.map((col, idx) => ({ id: col._id, position: idx }))
       })
       
       console.log("Column position updated successfully!")
     } catch (error) {
       console.error("Error updating column position:", error)
-      // Revert to original state if the API call fails
-      fetchColumns()
     }
   }
 
@@ -70,12 +62,11 @@ const MyBoard = () => {
     if (newListTitle.trim() === "") return
 
     try {
-      // When adding a new column, set its position to be at the end
       const position = columns.length
       const response = await postBoardColumn({ 
         boardId: id, 
         title: newListTitle,
-        position: position // Make sure your API accepts and stores this position value
+        position: position 
       })
       
       setColumns([...columns, response.data])
