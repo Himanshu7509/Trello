@@ -56,18 +56,34 @@ export const getCredatedBoardApi = () => {
   return Api.get("/board/my-boards");
 };
 
-export const postBoardColumn = (post) =>{
-  return Api.post('/column',post)
-}
+export const postBoardColumn = (post) => {
+  return Api.post("/column", post);
+};
 
-export const getBoardColumns = (id) =>{
-  return Api.get(`/column/get-all/${id}`)
-}
+export const getBoardColumns = (id) => {
+  return Api.get(`/column/get-all/${id}`);
+};
 
-export const updateBoardColumns = (post) =>{
-  return Api.patch("/column/columns/move",post)
-}
+export const updateBoardColumns = (post) => {
+  return Api.patch("/column/columns/move", post);
+};
 
 export const getUserApi = () => {
   return Api.get("/user/profile");
 };
+
+export const searchMember = (id) => {
+  return Api.get(`/user/search?query=${id}`);
+};
+
+export const addedBoardMembers = (boardId, memberId) => {
+  return Api.patch(`/board/add-member/${boardId}`, memberId);
+};
+
+export const getAllBoardMembers = (boardId) => {
+  return Api.get(`/board/members/${boardId}`);
+};
+
+export const postAddTask = (post) =>{
+  return Api.post("/task", post);
+}
