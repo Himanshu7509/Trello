@@ -53,7 +53,7 @@ export const createBoardApi = (post) => {
 };
 
 export const getCredatedBoardApi = () => {
-  return Api.get("/board/my-boards");
+  return Api.get("/board/all-boards");
 };
 
 export const postBoardColumn = (post) => {
