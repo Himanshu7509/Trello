@@ -5,41 +5,49 @@ import {
   postBoardColumn,
   getBoardColumns,
   updateBoardColumns,
-  postAddTask
+  postAddTask,
+  putUpdatedTask
 } from "../../utils/Api";
 import ShareBoardModal from "../../common/modals/ShareBoardModal";
+import TaskDetailModal from "../../common/modals/TaskDetailModal"; 
 import { X, Link as LinkIcon, Search } from "lucide-react";
 import Header from "../../common/header/Header";
 
 const MyBoard = () => {
   const { id } = useParams();
   const [columns, setColumns] = useState([]);
-  const [tasks, setTasks] = useState({}); 
+  const [tasks, setTasks] = useState({});
   const [loading, setLoading] = useState(true);
   const [addingList, setAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [modal, setModal] = useState(false);
-  
-  // State for adding cards - store which column is being edited
   const [addingCardToColumnId, setAddingCardToColumnId] = useState(null);
   const [newCardTitle, setNewCardTitle] = useState("");
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedColumnTitle, setSelectedColumnTitle] = useState("");
+  const [selectedColumnId, setSelectedColumnId] = useState("");
 
   const fetchColumns = async () => {
     try {
       const response = await getBoardColumns(id);
-      console.log(response);
-      
       console.log("Fetched columns data:", response.data);
-      
-      const sortedColumns = response.data.sort(
-        (a, b) => a.position - b.position
-      );
+  
+      const sortedColumns = response.data.sort((a, b) => a.position - b.position);
       setColumns(sortedColumns);
-     
+  
+      // 👉 Extract _id from each column
+      const columnIds = sortedColumns.map(col => col._id);
+      console.log("Column IDs:", columnIds);
+  
       const initialTasks = {};
       sortedColumns.forEach(col => {
         if (col.taskId && Array.isArray(col.taskId)) {
-          initialTasks[col._id] = col.taskId;
+          const sortedTasks = [...col.taskId].sort((a, b) =>
+            a.position !== undefined && b.position !== undefined
+              ? a.position - b.position
+              : 0
+          );
+          initialTasks[col._id] = sortedTasks;
         } else {
           initialTasks[col._id] = [];
         }
@@ -51,6 +59,8 @@ const MyBoard = () => {
       setLoading(false);
     }
   };
+  
+  
 
   useEffect(() => {
     fetchColumns();
@@ -60,11 +70,14 @@ const MyBoard = () => {
     setModal(true);
   };
 
+
+
+  
   const closeModal = () => {
     setModal(false);
   };
 
-  const handleDragEnd = async (result) => {
+  const handleColumnDragEnd = async (result) => {
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
@@ -82,12 +95,10 @@ const MyBoard = () => {
     setColumns(updatedItems);
 
     try {
-
       await updateBoardColumns({
         boardId: id,
         columnId: draggableId,
         newPosition: destination.index,
-    
         allColumns: updatedItems.map((col, idx) => ({
           id: col._id,
           position: idx,
@@ -101,6 +112,73 @@ const MyBoard = () => {
     }
   };
 
+  // Handle card drag and drop
+  const handleCardDragEnd = async (result) => {
+    const { source, destination, draggableId } = result;
+    
+    // If dropped outside a droppable area or at the same position, do nothing
+    if (!destination) return;
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return;
+    }
+
+    console.log("Moving task", draggableId);
+    console.log("From column:", source.droppableId, "at position:", source.index);
+    console.log("To column:", destination.droppableId, "at position:", destination.index);
+
+    // Create a copy of the current tasks state
+    const newTasks = { ...tasks };
+    
+    // Get the task being dragged
+    const draggedTask = newTasks[source.droppableId][source.index];
+    
+    // Remove the task from source column
+    newTasks[source.droppableId].splice(source.index, 1);
+    
+    // Add the task to the destination column at the specified index
+    newTasks[destination.droppableId].splice(destination.index, 0, draggedTask);
+    
+    // Update state with the new task positions - applying optimistic update
+    setTasks(newTasks);
+    
+    try {
+      const requestBody = {
+        position: destination.index,
+        columnId: destination.droppableId
+      };
+      
+      console.log("Updating task position:", {
+        taskId: draggableId,
+        ...requestBody
+      });
+      
+      // Send API request to update the task
+      await putUpdatedTask(draggableId, requestBody);
+      console.log("Card position updated successfully!");
+      
+      // Refresh data to ensure UI is in sync with backend
+      fetchColumns();
+    } catch (error) {
+      console.error("Error updating card position:", error);
+      // Revert to the previous state on error
+      fetchColumns();
+    }
+  };
+
+  // Combined drag end handler for both columns and cards
+  const handleDragEnd = (result) => {
+    const { type } = result;
+    
+    if (type === "column") {
+      handleColumnDragEnd(result);
+    } else {
+      handleCardDragEnd(result);
+    }
+  };
+
   const handleAddList = async (e) => {
     e.preventDefault();
     if (newListTitle.trim() === "") return;
@@ -111,7 +189,7 @@ const MyBoard = () => {
       const response = await postBoardColumn({
         boardId: id,
         title: newListTitle,
-        position: position, // Make sure your API accepts and stores this position value
+        position: position,
       });
 
       const newColumn = response.data;
@@ -143,19 +221,18 @@ const MyBoard = () => {
 
   const handleAddCard = async (e, columnId) => {
     e.preventDefault();
-    console.log("Adding card to column:", columnId);
     
     if (newCardTitle.trim() === "") return;
 
     try {
-      console.log("Sending API request with:", {
-        columnId: columnId,
-        title: newCardTitle
-      });
+      // Get the current position for the new task
+      const currentColumnTasks = tasks[columnId] || [];
+      const position = currentColumnTasks.length;
       
       const response = await postAddTask({
         columnId: columnId,
-        title: newCardTitle
+        title: newCardTitle,
+        position: position // Include position in the API call
       });
       
       console.log("Card added successfully:", response.data);
@@ -181,6 +258,44 @@ const MyBoard = () => {
       alert("Failed to add card. Please try again.");
     }
   };
+
+  // New functions for task detail modal
+  const handleOpenTaskModal = (task, columnTitle, columnId) => {
+    setSelectedTask(task);
+    setSelectedColumnTitle(columnTitle);
+    setSelectedColumnId(columnId); 
+  };
+
+  const handleCloseTaskModal = () => {
+    setSelectedTask(null);
+    setSelectedColumnId("");
+  };
+
+  const handleTaskUpdate = (updatedTask) => {
+    // Update the task in our local state
+    setTasks((prevTasks) => {
+      const newTasks = { ...prevTasks };
+
+      // Find the column that contains this task
+      Object.keys(newTasks).forEach((columnId) => {
+        const index = newTasks[columnId].findIndex(
+          (task) => task._id === updatedTask._id
+        );
+        if (index !== -1) {
+          // Replace the task with updated version
+          newTasks[columnId][index] = updatedTask;
+        }
+      });
+
+      return newTasks;
+    });
+
+    // Update the selected task state to show updated info in modal
+    setSelectedTask(updatedTask);
+  };
+
+  
+  
 
   return (
     <>
@@ -233,38 +348,57 @@ const MyBoard = () => {
                           </button>
                         </div>
                         
-                        {/* Cards display area */}
-                        <div className="flex-grow mb-4">
-                          {/* Use taskId from column data OR our tasks state */}
-                          {((col.taskId && Array.isArray(col.taskId) && col.taskId.length > 0) || 
-                            (tasks[col._id] && tasks[col._id].length > 0)) && (
-                            <div>
-                              {/* First try to use taskId from column if they are objects with title */}
-                              {col.taskId && Array.isArray(col.taskId) && col.taskId.some(task => task.title) && 
-                                col.taskId.map((task, idx) => (
-                                  <div 
-                                    key={task._id || `task-${col._id}-${idx}`}
-                                    className="bg-white p-3 mb-2 rounded shadow border border-gray-200"
-                                  >
-                                    <p className="text-sm">{task.title}</p>
-                                  </div>
-                                ))
-                              }
-                              
-                              {/* If no taskId with title, use our tasks state */}
-                              {(!col.taskId || !col.taskId.some(task => task.title)) && 
-                                tasks[col._id] && tasks[col._id].map((task, idx) => (
-                                  <div 
-                                    key={task._id || `task-${col._id}-${idx}`}
-                                    className="bg-white p-3 mb-2 rounded shadow border border-gray-200"
-                                  >
-                                    <p className="text-sm">{task.title}</p>
-                                  </div>
-                                ))
-                              }
+                        {/* Cards display area with drop zone */}
+                        <Droppable droppableId={col._id} type="task">
+                          {(provided) => (
+                            <div 
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              className="flex-grow mb-4 min-h-[50px]"
+                            >
+                              {/* Display cards from tasks state */}
+                              {tasks[col._id] && tasks[col._id].map((task, idx) => (
+                                <Draggable
+                                  key={task._id}
+                                  draggableId={task._id}
+                                  index={idx}
+                                >
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className={`bg-white p-3 mb-2 rounded shadow border ${
+                                        snapshot.isDragging ? 'border-blue-400 shadow-lg' : 'border-gray-200'
+                                      } hover:bg-gray-50 cursor-pointer`}
+                                      onClick={() => handleOpenTaskModal(task, col.title, col._id)}
+                                    >
+                                      <p className="text-sm">{task.title}</p>
+                                      {task.tags && task.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                          {task.tags.map((tag, idx) => (
+                                            <span
+                                              key={idx}
+                                              className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
+                                            >
+                                              {tag}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {task.dueDate && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          Due: {new Date(task.dueDate).toLocaleDateString()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
                             </div>
                           )}
-                        </div>
+                        </Droppable>
                         
                         {/* Add a card UI */}
                         <div className="mt-auto">
@@ -363,6 +497,19 @@ const MyBoard = () => {
       )}
 
       {modal && <ShareBoardModal onClose={closeModal} boardId={id} />}
+      
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+     
+          task={selectedTask}
+          columnTitle={selectedColumnTitle}
+          columnId={selectedColumnId}
+          onClose={handleCloseTaskModal}
+          onTaskUpdate={handleTaskUpdate}
+          onReloadBoard={fetchColumns} 
+        />
+      )}
     </div>
     </>
   );

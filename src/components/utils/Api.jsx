@@ -87,3 +87,7 @@ export const getAllBoardMembers = (boardId) => {
 export const postAddTask = (post) =>{
   return Api.post("/task", post);
 }
+
+export const putUpdatedTask = (taskId, taskData) => {
+  return Api.put(`/task/${taskId}`, taskData);
+}

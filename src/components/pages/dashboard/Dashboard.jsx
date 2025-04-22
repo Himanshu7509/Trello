@@ -45,13 +45,7 @@ const Dashboard = () => {
   }, []);
 
   const handleBoardCreated = (newBoard) => {
-    // Option 1: Add the new board to the list
     setBoards([...boards, newBoard]);
-    
-    // Option 2: Refresh the boards list
-    // fetchBoards();
-    
-    // Option 3: Navigate to the new board
     navigate(`/board/${newBoard._id}`);
   };
 
@@ -108,7 +102,6 @@ const Dashboard = () => {
           </section>
         </main>
 
-        {/* Self-contained CreateBoardModal */}
         <CreateBoardModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
