@@ -10,12 +10,10 @@ const ShareBoardModal = ({ onClose, boardId }) => {
   const [boardMembers, setBoardMembers] = useState([]);
   const [addingMemberId, setAddingMemberId] = useState(null);
 
-  // Fetch existing board members when modal opens
   useEffect(() => {
     fetchBoardMembers();
   }, [boardId]);
 
-  // Debounce search to prevent too many API calls
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchValue.trim()) {
@@ -32,6 +30,7 @@ const ShareBoardModal = ({ onClose, boardId }) => {
     try {
       const response = await getAllBoardMembers(boardId);
       setBoardMembers(response.data.members || []);
+      console.log("memeber", response.data)
     } catch (error) {
       console.error('Error fetching board members:', error);
     }
@@ -43,7 +42,6 @@ const ShareBoardModal = ({ onClose, boardId }) => {
     setIsLoading(true);
     try {
       const response = await searchMember(searchValue);
-      // Filter out users who are already members
       const existingMemberIds = boardMembers.map(member => member._id);
       const filteredResults = (response.data.users || []).filter(
         user => !existingMemberIds.includes(user._id)

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getCredatedBoardApi, getUserApi } from "../../utils/Api";
 import Header from "../../common/header/Header";
 import CreateBoardModal from "../../common/modals/CreateBoardModal"; 
+import Sidebar from '../../common/sidebar/Sidebar'
 
 const Dashboard = () => {
   const [name, setName] = useState("");
@@ -24,6 +25,8 @@ const Dashboard = () => {
       const response = await getCredatedBoardApi();
       if (response.status === 200 || response.status === 201) {
         setBoards(response.data);
+        console.log(response.data);
+        
       }
     } catch (error) {
       console.log("Error fetching boards:", error);
@@ -50,65 +53,75 @@ const Dashboard = () => {
   };
 
   return (
-    <>
+    <div className="flex flex-col h-screen bg-gray-900 text-white">
+
       <Header />
-      <div className="flex min-h-screen bg-gray-900 text-white">
-        <main className="flex-1 p-8 overflow-y-auto">
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-2xl font-bold">{name}'s Workspace</h1>
+      
+      {/* Main content area with sidebar and scrollable content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar on the left - completely independent */}
+        <Sidebar />
+        
+        {/* Main content - only this part scrolls */}
+        <main className="flex-1 overflow-y-auto">
+          {/* This div will adjust based on CSS variables set by the Sidebar */}
+          <div className="p-8 transition-all duration-300 ease-in-out">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-2xl font-bold">{name}'s Workspace</h1>
+              </div>
+              <hr className="border-gray-700 mt-4" />
             </div>
-            <hr className="border-gray-700 mt-4" />
-          </div>
 
-          <section className="mt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <FaUser className="text-xl" />
-              <h2 className="text-xl font-semibold">Your boards</h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <div
-                className="bg-gray-800 border border-gray-600 rounded-md p-4 flex items-center justify-center cursor-pointer hover:bg-gray-700 h-32"
-                onClick={() => setShowModal(true)}
-              >
-                <h3 className="text-gray-300 text-xl font-semibold">
-                  Create new board
-                </h3>
+            <section className="mt-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FaUser className="text-xl" />
+                <h2 className="text-xl font-semibold">Your boards</h2>
               </div>
 
-              {boards &&
-                boards.length > 0 &&
-                boards.map((item, index) => (
-                  <div
-                    key={index}
-                    onClick={() => navigate(`/board/${item._id}`)}
-                    className={`${
-                      bgColors[index % bgColors.length]
-                    } border border-gray-600 rounded-md p-4 cursor-pointer hover:opacity-90 transition-all duration-300 h-32 shadow-lg flex flex-col justify-between overflow-hidden`}
-                  >
-                    <h3 className="text-white text-2xl font-medium truncate">
-                      {item.title}
-                    </h3>
-                  </div>
-                ))}
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div
+                  className="bg-gray-800 border border-gray-600 rounded-md p-4 flex items-center justify-center cursor-pointer hover:bg-gray-700 h-32"
+                  onClick={() => setShowModal(true)}
+                >
+                  <h3 className="text-gray-300 text-xl font-semibold">
+                    Create new board
+                  </h3>
+                </div>
 
-            <div className="mt-6">
-              <button className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">
-                View closed boards
-              </button>
-            </div>
-          </section>
+                {boards &&
+                  boards.length > 0 &&
+                  boards.map((item, index) => (
+                    <div
+                      key={index}
+                      onClick={() => navigate(`/board/${item._id}`)}
+                      className={`${
+                        bgColors[index % bgColors.length]
+                      } border border-gray-600 rounded-md p-4 cursor-pointer hover:opacity-90 transition-all duration-300 h-32 shadow-lg flex flex-col justify-between overflow-hidden`}
+                    >
+                      <h3 className="text-white text-2xl font-medium truncate">
+                        {item.title}
+                      </h3>
+                    </div>
+                  ))}
+              </div>
+
+              <div className="mt-6">
+                <button className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">
+                  View closed boards
+                </button>
+              </div>
+            </section>
+          </div>
         </main>
-
-        <CreateBoardModal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          onBoardCreated={handleBoardCreated}
-        />
       </div>
-    </>
+
+      <CreateBoardModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onBoardCreated={handleBoardCreated}
+      />
+    </div>
   );
 };
 

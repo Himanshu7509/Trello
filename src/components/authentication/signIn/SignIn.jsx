@@ -6,6 +6,7 @@ import {
   FaAtlassian,
   FaEye,
   FaEyeSlash,
+  FaSpinner,
 } from "react-icons/fa";
 import { HiOutlineShieldCheck } from "react-icons/hi";
 import { signInApi } from "../../utils/Api";
@@ -18,6 +19,7 @@ const SignIn = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -30,6 +32,8 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     try {
       const response = await signInApi(signIn);
       console.log(response);
@@ -44,6 +48,8 @@ const SignIn = () => {
       navigate("/home");
     } catch (error) {
       console.error("SignIn failed:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -144,9 +150,19 @@ const SignIn = () => {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition duration-200 flex items-center justify-center space-x-2"
+            disabled={isLoading}
+            className={`w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition duration-200 flex items-center justify-center space-x-2 ${
+              isLoading ? "opacity-75 cursor-not-allowed" : "hover:bg-blue-700"
+            }`}
           >
-            <span>Sign In</span>
+            {isLoading ? (
+              <>
+                <FaSpinner className="animate-spin mr-2" />
+                <span>Signing In...</span>
+              </>
+            ) : (
+              <span>Sign In</span>
+            )}
           </button>
         </form>
 
@@ -163,9 +179,7 @@ const SignIn = () => {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200"></div>
           </div>
-        
         </div>
-
 
         <div className="mt-8 text-center border-t border-gray-100 pt-6">
           <div className="flex justify-center mb-2">

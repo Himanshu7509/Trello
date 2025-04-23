@@ -36,14 +36,12 @@ function Header() {
 
   const handleOpenCreateModal = () => {
     setShowCreateBoardModal(true);
-    // Close mobile menu if it's open
     if (isMobileMenuOpen) {
       setIsMobileMenuOpen(false);
     }
   };
 
   const handleBoardCreated = (newBoard) => {
-    // Navigate to the new board
     navigate(`/board/${newBoard._id}`);
   };
 
@@ -51,7 +49,8 @@ function Header() {
 
   return (
     <>
-      <header className="flex items-center bg-[#1D2125] px-3 py-2 w-full">
+      {/* Main header - now sticky with z-index to ensure it stays on top */}
+      <header className="flex items-center bg-[#1D2125] px-3 py-2 w-full sticky top-0 z-40">
         <div className="flex items-center space-x-2">
           <button
             className="text-gray-400 p-1.5 hover:bg-gray-700 rounded"
@@ -138,7 +137,8 @@ function Header() {
         </div>
       </header>
 
-      <div className="md:hidden flex justify-between items-center bg-[#1D2125] px-3 py-2 border-t border-gray-700">
+      {/* Mobile menu header - also sticky to stay below the main header */}
+      <div className="md:hidden flex justify-between items-center bg-[#1D2125] px-3 py-2 border-t border-gray-700 sticky top-12 z-30">
         <button 
           className="bg-[#579DFF] text-black px-3 py-1.5 rounded text-sm font-bold"
           onClick={handleOpenCreateModal}
