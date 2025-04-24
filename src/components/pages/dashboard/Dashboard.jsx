@@ -3,8 +3,9 @@ import { FaUser } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { getCredatedBoardApi, getUserApi } from "../../utils/Api";
 import Header from "../../common/header/Header";
-import CreateBoardModal from "../../common/modals/CreateBoardModal"; 
-import Sidebar from '../../common/sidebar/Sidebar'
+import CreateBoardModal from "../../common/modals/CreateBoardModal";
+import Sidebar from "../../common/sidebar/Sidebar";
+
 
 const Dashboard = () => {
   const [name, setName] = useState("");
@@ -25,8 +26,7 @@ const Dashboard = () => {
       const response = await getCredatedBoardApi();
       if (response.status === 200 || response.status === 201) {
         setBoards(response.data);
-        console.log(response.data);
-        
+        console.log("dashboard", response.data);
       }
     } catch (error) {
       console.log("Error fetching boards:", error);
@@ -38,6 +38,7 @@ const Dashboard = () => {
       try {
         const response = await getUserApi();
         setName(response.data.userName);
+        console.log("name", response.data.userName);
       } catch (error) {
         console.log("Error fetching user:", error);
       }
@@ -54,14 +55,13 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
-
       <Header />
-      
+
       {/* Main content area with sidebar and scrollable content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar on the left - completely independent */}
         <Sidebar />
-        
+
         {/* Main content - only this part scrolls */}
         <main className="flex-1 overflow-y-auto">
           {/* This div will adjust based on CSS variables set by the Sidebar */}
@@ -99,18 +99,34 @@ const Dashboard = () => {
                         bgColors[index % bgColors.length]
                       } border border-gray-600 rounded-md p-4 cursor-pointer hover:opacity-90 transition-all duration-300 h-32 shadow-lg flex flex-col justify-between overflow-hidden`}
                     >
-                      <h3 className="text-white text-2xl font-medium truncate">
-                        {item.title}
-                      </h3>
+                      <div>
+                        <div className="w-full flex justify-between items-center">
+                        <h3 className="text-white text-2xl font-medium truncate">
+                          {item.title}
+                        </h3>
+                        <span className="bg-gray-800 font-semibold bg-opacity-50 px-2 py-1 rounded">
+                          {item.visibility}
+                        </span>
+                        </div>
+                        {item.description && (
+                          <p className="text-gray-300 text-sm mt-1 truncate">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-gray-300 mt-2">
+                        
+                        {item.createdBy && item.createdBy.userName !== name && (
+                          <span className="bg-gray-800 font-semibold bg-opacity-50 px-2 py-1 rounded flex items-center gap-2">
+                            <FaUser/> {item.createdBy.userName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
               </div>
 
-              <div className="mt-6">
-                <button className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">
-                  View closed boards
-                </button>
-              </div>
+              
             </section>
           </div>
         </main>

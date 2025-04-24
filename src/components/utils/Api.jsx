@@ -72,6 +72,10 @@ export const getBoardColumns = (id) => {
   return Api.get(`/column/get-all/${id}`);
 };
 
+export const updateColumnName = (columnId, columnData) =>{
+  return Api.patch(`/column/${columnId}`, columnData)
+}
+
 export const updateBoardColumns = (post) => {
   return Api.patch("/column/columns/move", post);
 };

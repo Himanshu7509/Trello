@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import {
-  postBoardColumn, getBoardColumns, updateBoardColumns, postAddTask, putUpdatedTask
+  postBoardColumn, updateColumnName, getBoardColumns, updateBoardColumns, postAddTask, putUpdatedTask
 } from "../../utils/Api";
 import TaskDetailModal from "../../common/modals/TaskDetailModal";
 import { X } from "lucide-react";
 import Header from "../../common/header/Header";
 import BoardHeader from "./boardComponents/BoardHeader";
 import Sidebar from "../../common/sidebar/Sidebar";
+import io from "socket.io-client";
+
+// Socket instance
+let socket = null;
 
 const scrollbarStyles = {
   scrollContainer: {
@@ -37,6 +41,206 @@ const MyBoard = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedColumnTitle, setSelectedColumnTitle] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState("");
+  const [editingColumnId, setEditingColumnId] = useState(null);
+  const [editedColumnTitle, setEditedColumnTitle] = useState("");
+  
+  // Socket related states
+  const [activeUsers, setActiveUsers] = useState([]);
+  const [userCursors, setUserCursors] = useState({});
+  const socketInitialized = useRef(false);
+
+  // Initialize socket connection
+  useEffect(() => {
+    if (!socketInitialized.current) {
+      // Connect to socket server - replace with your actual socket URL
+      socket = io("https://trello-441q.onrender.com" , {
+        withCredentials: true, // If you're using cookies for auth
+      });
+
+      // Socket connection handlers
+      socket.on('connect', () => {
+        console.log('Socket connected');
+        // Join this specific board room
+        socket.emit('joinBoard', id);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected');
+      });
+
+      socket.on('error', (error) => {
+        console.error('Socket error:', error);
+      });
+
+      socketInitialized.current = true;
+    }
+
+    return () => {
+      if (socket) {
+        // Leave the board room when component unmounts
+        socket.emit('leaveBoard', id);
+      }
+    };
+  }, [id]);
+
+  // Set up socket event listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    // Listen for board content updates
+    socket.on('boardContentUpdated', ({ content, updatedBy }) => {
+      console.log(`Board updated by ${updatedBy.userName}`);
+      fetchColumns(); // Refresh the board data
+    });
+
+    // Listen for user presence
+    socket.on('userActive', ({ userId, userName, timestamp }) => {
+      setActiveUsers(prev => {
+        if (!prev.some(user => user.userId === userId)) {
+          return [...prev, { userId, userName, timestamp }];
+        }
+        return prev;
+      });
+    });
+
+    socket.on('userLeft', ({ userId }) => {
+      setActiveUsers(prev => prev.filter(user => user.userId !== userId));
+      setUserCursors(prev => {
+        const newCursors = { ...prev };
+        delete newCursors[userId];
+        return newCursors;
+      });
+    });
+
+    socket.on('userOnline', ({ userId, userName }) => {
+      setActiveUsers(prev => {
+        if (!prev.some(user => user.userId === userId)) {
+          return [...prev, { userId, userName, timestamp: new Date() }];
+        }
+        return prev;
+      });
+    });
+
+    socket.on('userOffline', ({ userId }) => {
+      setActiveUsers(prev => prev.filter(user => user.userId !== userId));
+      setUserCursors(prev => {
+        const newCursors = { ...prev };
+        delete newCursors[userId];
+        return newCursors;
+      });
+    });
+
+    // Listen for cursor movements
+    socket.on('userCursorMoved', ({ userId, userName, position, selection }) => {
+      setUserCursors(prev => ({
+        ...prev,
+        [userId]: { userName, position, selection, timestamp: new Date() }
+      }));
+    });
+
+    // Listen for column events
+    socket.on('columnCreated', ({ columnData }) => {
+      setColumns(prev => [...prev, columnData]);
+      setTasks(prev => ({ ...prev, [columnData._id]: [] }));
+    });
+
+    socket.on('columnUpdated', ({ columnId, updatedData }) => {
+      setColumns(prev => prev.map(col => 
+        col._id === columnId ? { ...col, ...updatedData } : col
+      ));
+    });
+
+    socket.on('columnDeleted', ({ columnId }) => {
+      setColumns(prev => prev.filter(col => col._id !== columnId));
+      setTasks(prev => {
+        const newTasks = { ...prev };
+        delete newTasks[columnId];
+        return newTasks;
+      });
+    });
+
+    // Listen for task events
+    socket.on('taskCreated', ({ columnId, taskData }) => {
+      setTasks(prev => ({
+        ...prev,
+        [columnId]: [...(prev[columnId] || []), taskData]
+      }));
+    });
+
+    socket.on('taskUpdated', ({ taskId, updatedData }) => {
+      setTasks(prev => {
+        const newTasks = { ...prev };
+        Object.keys(newTasks).forEach(columnId => {
+          const taskIndex = newTasks[columnId].findIndex(task => task._id === taskId);
+          if (taskIndex !== -1) {
+            newTasks[columnId][taskIndex] = { 
+              ...newTasks[columnId][taskIndex], 
+              ...updatedData 
+            };
+          }
+        });
+        return newTasks;
+      });
+      
+      if (selectedTask && selectedTask._id === taskId) {
+        setSelectedTask(prev => ({ ...prev, ...updatedData }));
+      }
+    });
+
+    socket.on('taskMoved', ({ taskId, fromColumnId, toColumnId, newPosition }) => {
+      fetchColumns(); // Simpler to just refresh all data for complex moves
+    });
+
+    socket.on('taskDeleted', ({ taskId, columnId }) => {
+      setTasks(prev => ({
+        ...prev,
+        [columnId]: prev[columnId].filter(task => task._id !== taskId)
+      }));
+      
+      if (selectedTask && selectedTask._id === taskId) {
+        setSelectedTask(null);
+      }
+    });
+
+    // Clean up event listeners
+    return () => {
+      socket.off('boardContentUpdated');
+      socket.off('userActive');
+      socket.off('userLeft');
+      socket.off('userOnline');
+      socket.off('userOffline');
+      socket.off('userCursorMoved');
+      socket.off('columnCreated');
+      socket.off('columnUpdated');
+      socket.off('columnDeleted');
+      socket.off('taskCreated');
+      socket.off('taskUpdated');
+      socket.off('taskMoved');
+      socket.off('taskDeleted');
+    };
+  }, [id, selectedTask]);
+
+  // Emit cursor position on mouse movement
+  const handleMouseMove = (e) => {
+    if (!socket) return;
+    
+    // Throttle cursor updates to avoid overwhelming the server
+    if (!handleMouseMove.lastEmit || Date.now() - handleMouseMove.lastEmit > 100) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const position = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+      
+      socket.emit('cursorMove', {
+        boardId: id,
+        position,
+        selection: null // Add selection tracking if needed
+      });
+      
+      handleMouseMove.lastEmit = Date.now();
+    }
+  };
 
   const fetchColumns = async () => {
     try {
@@ -76,6 +280,52 @@ const MyBoard = () => {
     fetchColumns();
   }, [id]);
 
+  // Add these new functions for column title editing
+  const handleColumnTitleClick = (columnId, currentTitle) => {
+    setEditingColumnId(columnId);
+    setEditedColumnTitle(currentTitle);
+  };
+
+  const handleColumnTitleChange = (e) => {
+    setEditedColumnTitle(e.target.value);
+  };
+
+  const handleColumnTitleSave = async (e) => {
+    e.preventDefault();
+    
+    if (editedColumnTitle.trim() === "") return;
+    
+    try {
+      await updateColumnName(editingColumnId, { title: editedColumnTitle });
+      
+      // Update local state
+      setColumns(columns.map(col => 
+        col._id === editingColumnId ? { ...col, title: editedColumnTitle } : col
+      ));
+      
+      // Emit socket event for real-time update
+      if (socket) {
+        socket.emit('boardContentUpdate', {
+          boardId: id,
+          content: { type: 'columnTitleUpdate', columnId: editingColumnId, title: editedColumnTitle },
+          lastModified: new Date()
+        });
+      }
+      
+      // Reset editing state
+      setEditingColumnId(null);
+      setEditedColumnTitle("");
+    } catch (error) {
+      console.error("Error updating column title:", error);
+    }
+  };
+
+  const handleColumnTitleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setEditingColumnId(null);
+    }
+  };
+
   const handleColumnDragEnd = async (result) => {
     if (!result.destination) return;
     const { source, destination, draggableId } = result;
@@ -102,6 +352,18 @@ const MyBoard = () => {
           position: idx,
         })),
       });
+      
+      // Emit socket event for column reordering
+      if (socket) {
+        socket.emit('boardContentUpdate', {
+          boardId: id,
+          content: { 
+            type: 'columnsReordered', 
+            columns: updatedItems.map(col => ({ id: col._id, position: col.position }))
+          },
+          lastModified: new Date()
+        });
+      }
     } catch (error) {
       console.error("Error updating column position:", error);
       fetchColumns();
@@ -134,6 +396,22 @@ const MyBoard = () => {
       };
       
       await putUpdatedTask(draggableId, requestBody);
+      
+      // Emit socket event for task movement
+      if (socket) {
+        socket.emit('boardContentUpdate', {
+          boardId: id,
+          content: { 
+            type: 'taskMoved', 
+            taskId: draggableId,
+            fromColumnId: source.droppableId,
+            toColumnId: destination.droppableId,
+            newPosition: destination.index
+          },
+          lastModified: new Date()
+        });
+      }
+      
       fetchColumns();
     } catch (error) {
       console.error("Error updating card position:", error);
@@ -169,6 +447,15 @@ const MyBoard = () => {
         ...prev,
         [newColumn._id]: []
       }));
+      
+      // Emit socket event for new column
+      if (socket) {
+        socket.emit('boardContentUpdate', {
+          boardId: id,
+          content: { type: 'columnCreated', columnData: newColumn },
+          lastModified: new Date()
+        });
+      }
       
       setNewListTitle("");
       setAddingList(false);
@@ -209,6 +496,15 @@ const MyBoard = () => {
         [columnId]: [...(prevTasks[columnId] || []), newTask]
       }));
       
+      // Emit socket event for new task
+      if (socket) {
+        socket.emit('boardContentUpdate', {
+          boardId: id,
+          content: { type: 'taskCreated', columnId, taskData: newTask },
+          lastModified: new Date()
+        });
+      }
+      
       setNewCardTitle("");
       setAddingCardToColumnId(null);
       fetchColumns();
@@ -243,7 +539,41 @@ const MyBoard = () => {
       });
       return newTasks;
     });
+    
     setSelectedTask(updatedTask);
+    
+    // Emit socket event for task update
+    if (socket) {
+      socket.emit('boardContentUpdate', {
+        boardId: id,
+        content: { type: 'taskUpdated', taskId: updatedTask._id, updatedData: updatedTask },
+        lastModified: new Date()
+      });
+    }
+  };
+
+  // Render active users indicator
+  const renderActiveUsers = () => {
+    if (activeUsers.length === 0) return null;
+    
+    return (
+      <div className="flex items-center gap-1 ml-auto mr-4">
+        {activeUsers.slice(0, 5).map(user => (
+          <div 
+            key={user.userId} 
+            className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium"
+            title={user.userName}
+          >
+            {user.userName.charAt(0).toUpperCase()}
+          </div>
+        ))}
+        {activeUsers.length > 5 && (
+          <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 text-xs font-medium">
+            +{activeUsers.length - 5}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -255,7 +585,10 @@ const MyBoard = () => {
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
          
-          <BoardHeader boardId={id} boardTitle={boardTitle} />
+          <BoardHeader boardId={id} boardTitle={boardTitle}>
+            {renderActiveUsers()}
+          </BoardHeader>
+          
           <div
             className="flex-1 p-6 bg-cover bg-center hide-scrollbar"
             style={{
@@ -263,7 +596,33 @@ const MyBoard = () => {
                 "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1470&q=80')",
               ...scrollbarStyles.scrollContainer,
             }}
+            onMouseMove={handleMouseMove}
           >
+            {/* Render remote cursors */}
+            {Object.entries(userCursors).map(([userId, cursor]) => (
+              <div
+                key={userId}
+                style={{
+                  position: 'absolute',
+                  left: cursor.position?.x || 0,
+                  top: cursor.position?.y || 0,
+                  pointerEvents: 'none',
+                  zIndex: 1000,
+                }}
+              >
+                <div className="flex flex-col items-start">
+                  <div className="text-xs font-medium py-0.5 px-1.5 rounded bg-blue-500 text-white whitespace-nowrap">
+                    {cursor.userName}
+                  </div>
+                  <div 
+                    className="transform -translate-x-1/2 -translate-y-1/2 text-blue-500" 
+                    style={{ marginTop: -5 }}
+                  >
+                    ▲
+                  </div>
+                </div>
+              </div>
+            ))}
 
             {loading ? (
               <p className="text-white">Loading columns...</p>
@@ -286,9 +645,26 @@ const MyBoard = () => {
                               className="bg-white/90 p-4 rounded-lg shadow-lg min-w-[250px] max-w-[250px] flex flex-col h-auto"
                             >
                               <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-semibold text-lg truncate">
-                                  {col.title}
-                                </h3>
+                                {editingColumnId === col._id ? (
+                                  <form onSubmit={handleColumnTitleSave} className="flex-1">
+                                    <input
+                                      type="text"
+                                      value={editedColumnTitle}
+                                      onChange={handleColumnTitleChange}
+                                      onKeyDown={handleColumnTitleKeyDown}
+                                      onBlur={handleColumnTitleSave}
+                                      className="font-semibold text-lg w-full px-1 py-0.5 border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                      autoFocus
+                                    />
+                                  </form>
+                                ) : (
+                                  <h3 
+                                    className="font-semibold text-lg truncate cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded" 
+                                    onClick={() => handleColumnTitleClick(col._id, col.title)}
+                                  >
+                                    {col.title}
+                                  </h3>
+                                )}
                                 <button className="text-gray-400 hover:text-gray-600">
                                   ⋮
                                 </button>
@@ -445,7 +821,9 @@ const MyBoard = () => {
                 columnId={selectedColumnId}
                 onClose={handleCloseTaskModal}
                 onTaskUpdate={handleTaskUpdate}
-                onReloadBoard={fetchColumns} 
+                onReloadBoard={fetchColumns}
+                socket={socket}
+                boardId={id}
               />
             )}
           </div>

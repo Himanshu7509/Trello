@@ -164,20 +164,20 @@ const Sidebar = () => {
                 icon={<Users size={18} />} 
                 label="Members" 
                 collapsed={collapsed && !mobileOpen}
-                to="/members"
+                to="/home"
                 rightIcon={<Plus size={16} />}
               />
               <NavItem 
                 icon={<Settings size={18} />} 
                 label="Workspace settings" 
                 collapsed={collapsed && !mobileOpen}
-                to="/settings"
+                to="/home"
                 dropdown
               />
             </div>
             
             {/* Views section */}
-            <div className="mt-4 mb-2">
+            {/* <div className="mt-4 mb-2">
               {(!collapsed || mobileOpen) && (
                 <span className="text-gray-400 font-medium text-sm px-3 py-1 block">Workspace views</span>
               )}
@@ -193,7 +193,7 @@ const Sidebar = () => {
                 collapsed={collapsed && !mobileOpen}
                 to="/calendar"
               />
-            </div>
+            </div> */}
             
             {/* Boards section */}
             <div className="mt-4">
@@ -241,7 +241,7 @@ const Sidebar = () => {
       {/* Backdrop for mobile */}
       {isMobile && mobileOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20"
+          className="fixed inset-0 backdrop-blur-sm bg-opacity-50 z-20"
           onClick={toggleSidebar} 
         />
       )}
@@ -249,7 +249,6 @@ const Sidebar = () => {
   );
 };
 
-// Helper component for navigation items
 const NavItem = ({ icon, label, collapsed, to, rightIcon, dropdown }) => {
   return (
     <Link to={to || "#"} className="flex items-center px-3 py-1.5 rounded text-gray-300 hover:bg-gray-700 mb-1 group">
@@ -270,9 +269,8 @@ const NavItem = ({ icon, label, collapsed, to, rightIcon, dropdown }) => {
   );
 };
 
-// BoardItem component with edit functionality
 const BoardItem = ({ board, collapsed, onEditClick }) => {
-  // Generate a consistent color based on the board title
+
   const getColorClass = (title) => {
     const colors = ['bg-blue-600', 'bg-green-600', 'bg-yellow-600', 'bg-red-600', 'bg-purple-600'];
     const index = title.charCodeAt(0) % colors.length;
