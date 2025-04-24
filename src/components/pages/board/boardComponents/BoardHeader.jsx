@@ -3,7 +3,7 @@ import { BsThreeDots } from 'react-icons/bs';
 import { HiOutlineUserGroup } from 'react-icons/hi';
 import BoardMenu from './BoardMenu';
 import ShareBoardModal from '../../../common/modals/ShareBoardModal';
-import { getAllBoardMembers } from '../../../utils/Api';
+import { getAllBoardMembers, getCredatedBoardApi, updateBoardApi } from '../../../utils/Api';
 
 const getInitials = (userName) => {
   if (!userName) return '';
@@ -27,17 +27,24 @@ const generateColor = (userName) => {
   return colors[hash % colors.length];
 };
 
-const BoardHeader = ({boardId}) => {
+const BoardHeader = ({boardId, boardTitle}) => {
   const id = boardId;
   const [showMenu, setShowMenu] = useState(false);
   const [modal, setModal] = useState(false);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [board, setBoard] = useState("")
   const handleModal = () => setModal(true);
   const closeModal = () => setModal(false);
+  const title = boardTitle
 
   useEffect(() => {
+
+    const boardName = async() =>{
+      const response = await getCredatedBoardApi();
+      console.log("board name",response.data)
+    }
+
     const showMembers = async() => {
       try {
         const response = await getAllBoardMembers(id);
@@ -51,6 +58,7 @@ const BoardHeader = ({boardId}) => {
         setLoading(false);
       }
     };
+    boardName();
     showMembers();
   }, [id]);
 
@@ -62,7 +70,7 @@ const BoardHeader = ({boardId}) => {
       <div className="w-full z-10 px-4 py-2 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-900 dark:to-gray-800 flex justify-between items-center">
         {/* Left */}
         <div className="flex items-center space-x-2">
-          <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Task Group</h1>
+          <h1 className="text-lg font-semibold text-gray-800 dark:text-white">{title}</h1>
         </div>
         
         {/* Right */}

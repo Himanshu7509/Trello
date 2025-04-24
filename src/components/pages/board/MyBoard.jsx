@@ -27,6 +27,7 @@ const hideScrollbarStyle = `
 const MyBoard = () => {
   const { id } = useParams();
   const [columns, setColumns] = useState([]);
+  const [boardTitle, setBoardTitle] = useState("");
   const [tasks, setTasks] = useState({});
   const [loading, setLoading] = useState(true);
   const [addingList, setAddingList] = useState(false);
@@ -40,7 +41,14 @@ const MyBoard = () => {
   const fetchColumns = async () => {
     try {
       const response = await getBoardColumns(id);
-      const sortedColumns = response.data.sort((a, b) => a.position - b.position);
+      console.log("getboardcolumn", response.data);
+      
+      // Fix: Extract columns array and boardTitle from the response
+      const { columns: columnsData, boardTitle } = response.data;
+      setBoardTitle(boardTitle);
+      
+      // Sort the columns by position
+      const sortedColumns = columnsData.sort((a, b) => a.position - b.position);
       setColumns(sortedColumns);
       
       const initialTasks = {};
@@ -247,7 +255,7 @@ const MyBoard = () => {
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
          
-          <BoardHeader boardId={id} />
+          <BoardHeader boardId={id} boardTitle={boardTitle} />
           <div
             className="flex-1 p-6 bg-cover bg-center hide-scrollbar"
             style={{

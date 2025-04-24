@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Home, Users, Settings, Plus, Calendar, Layout } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Users, Settings, Plus, Calendar, Layout, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getCredatedBoardApi, getUserApi } from '../../utils/Api';
+import { getMyBoardApi, getUserApi } from '../../utils/Api';
+import EditBoardModal from '../../common/modals/EditBoardModal';
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -10,6 +11,8 @@ const Sidebar = () => {
   const [boards, setBoards] = useState([]);
   const [userName, setUserName] = useState("");
   const [userInitial, setUserInitial] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [currentBoard, setCurrentBoard] = useState(null);
 
   useEffect(() => {
     const checkIfMobile = () => {
@@ -39,13 +42,25 @@ const Sidebar = () => {
 
   const fetchBoards = async () => {
     try {
-      const response = await getCredatedBoardApi();
+      const response = await getMyBoardApi();
       if (response.status === 200 || response.status === 201) {
         setBoards(response.data);
       }
     } catch (error) {
       console.log("Error fetching boards:", error);
     }
+  };
+
+  const handleEditBoard = (board, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentBoard(board);
+    setEditModalOpen(true);
+  };
+
+  // Handle updated boards from EditBoardModal
+  const handleBoardsUpdated = (updatedBoards) => {
+    setBoards(updatedBoards);
   };
 
   useEffect(() => {
@@ -195,9 +210,9 @@ const Sidebar = () => {
               {boards.map((board) => (
                 <BoardItem 
                   key={board._id}
-                  id={board._id}
-                  title={board.title}
+                  board={board}
                   collapsed={collapsed && !mobileOpen}
+                  onEditClick={handleEditBoard}
                 />
               ))}
             </div>
@@ -214,6 +229,14 @@ const Sidebar = () => {
           )}
         </div>
       </div>
+      
+      {/* Edit Board Modal */}
+      <EditBoardModal 
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        board={currentBoard}
+        onBoardsUpdated={handleBoardsUpdated}
+      />
       
       {/* Backdrop for mobile */}
       {isMobile && mobileOpen && (
@@ -247,8 +270,8 @@ const NavItem = ({ icon, label, collapsed, to, rightIcon, dropdown }) => {
   );
 };
 
-// Helper component for board items
-const BoardItem = ({ id, title, collapsed }) => {
+// BoardItem component with edit functionality
+const BoardItem = ({ board, collapsed, onEditClick }) => {
   // Generate a consistent color based on the board title
   const getColorClass = (title) => {
     const colors = ['bg-blue-600', 'bg-green-600', 'bg-yellow-600', 'bg-red-600', 'bg-purple-600'];
@@ -257,17 +280,29 @@ const BoardItem = ({ id, title, collapsed }) => {
   };
 
   return (
-    <Link to={`/board/${id}`} className="flex items-center px-3 py-1.5 rounded text-gray-300 hover:bg-gray-700 mb-1 group">
-      <div className="flex items-center w-full">
-        <div className={`${getColorClass(title)} w-4 h-4 rounded mr-3`}></div>
-        {!collapsed && <span className="text-sm truncate">{title}</span>}
-      </div>
+    <div className="relative group">
+      <Link to={`/board/${board._id}`} className="flex items-center px-3 py-1.5 rounded text-gray-300 hover:bg-gray-700 mb-1">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center">
+            <div className={`${getColorClass(board.title)} w-4 h-4 rounded mr-3`}></div>
+            {!collapsed && <span className="text-sm truncate">{board.title}</span>}
+          </div>
+          {!collapsed && (
+            <button 
+              onClick={(e) => onEditClick(board, e)} 
+              className="text-gray-400 hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Edit2 size={14} />
+            </button>
+          )}
+        </div>
+      </Link>
       {collapsed && (
         <div className="absolute left-16 bg-gray-800 text-white px-2 py-1 rounded ml-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity whitespace-nowrap z-50">
-          {title}
+          {board.title}
         </div>
       )}
-    </Link>
+    </div>
   );
 };
 

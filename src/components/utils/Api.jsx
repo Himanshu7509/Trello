@@ -56,6 +56,14 @@ export const getCredatedBoardApi = () => {
   return Api.get("/board/all-boards");
 };
 
+export const getMyBoardApi = () => {
+  return Api.get("/board/my-boards");
+};
+
+export const updateBoardApi = (boardId, boardData) => {
+  return Api.put(`/board/update/${boardId}`, boardData);
+};
+
 export const postBoardColumn = (post) => {
   return Api.post("/column", post);
 };
